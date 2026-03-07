@@ -14,7 +14,9 @@ import org.identityconnectors.framework.common.objects.Name;
 import org.identityconnectors.framework.common.objects.ObjectClass;
 import org.identityconnectors.framework.common.objects.OperationOptions;
 import org.identityconnectors.framework.common.objects.ResultsHandler;
+import org.identityconnectors.framework.common.objects.SearchResult;
 import org.identityconnectors.framework.common.objects.Uid;
+import org.identityconnectors.framework.spi.SearchResultsHandler;
 import org.identityconnectors.framework.common.objects.filter.EqualsFilter;
 import org.identityconnectors.framework.common.objects.filter.Filter;
 
@@ -79,24 +81,32 @@ public class UserHandler extends AbstractHandler {
             queryFilter = "true";
         }
 
-        String cookie = null;
-        do {
-            Map<String, String> params = new LinkedHashMap<>();
-            params.put("_queryFilter", queryFilter);
-            params.put("_pageSize", "100");
-            if (cookie != null) {
-                params.put("_pagedResultsCookie", cookie);
+        Map<String, String> params = new LinkedHashMap<>();
+        params.put("_queryFilter", queryFilter);
+        if (options.getPageSize() != null) {
+            params.put("_pageSize", options.getPageSize().toString());
+            if (options.getPagedResultsCookie() != null) {
+                params.put("_pagedResultsCookie", options.getPagedResultsCookie());
+            } else if (options.getPagedResultsOffset() != null) {
+                params.put("_pagedResultsOffset", options.getPagedResultsOffset().toString());
             }
-            JsonNode response = http.get(resourceUrl, params);
-            JsonNode results = response.get("result");
-            if (results != null) {
-                for (JsonNode node : results) {
-                    handler.handle(connectorObjectFromJson(node, objectClass, NAME_ATTRIBUTE));
-                }
+        }
+
+        JsonNode response = http.get(resourceUrl, params);
+        JsonNode results = response.get("result");
+        if (results != null) {
+            for (JsonNode node : results) {
+                handler.handle(connectorObjectFromJson(node, objectClass, NAME_ATTRIBUTE));
             }
-            JsonNode cookieNode = response.get("_pagedResultsCookie");
-            cookie = (cookieNode == null || cookieNode.isNull()) ? null : cookieNode.asText();
-        } while (cookie != null);
+        }
+
+        JsonNode cookieNode = response.get("pagedResultsCookie");
+        String nextCookie = (cookieNode == null || cookieNode.isNull()) ? null : cookieNode.asText();
+        JsonNode remainingNode = response.get("remainingPagedResults");
+        int remaining = (remainingNode == null || remainingNode.isNull()) ? -1 : remainingNode.asInt();
+        if (handler instanceof SearchResultsHandler) {
+            ((SearchResultsHandler) handler).handleResult(new SearchResult(nextCookie, remaining));
+        }
     }
 
 }
