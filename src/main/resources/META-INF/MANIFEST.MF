@@ -8,10 +8,10 @@ Bundle-Description: OpenICF connector for PingOne Advanced Identity Clou
  d CREST API
 Bundle-ManifestVersion: 2
 Bundle-Name: PingOne Advanced Identity Cloud Connector
-Bundle-SymbolicName: ping-aic-connector
+Bundle-SymbolicName: org.forgerock.openicf.connectors.ping-aic-connector
 Bundle-Version: 1.5.20.32
 ConnectorBundle-FrameworkVersion: 1.5.20.32
-ConnectorBundle-Name: ping-aic-connector
+ConnectorBundle-Name: org.forgerock.openicf.connectors.ping-aic-connector
 ConnectorBundle-Version: 1.5.20.32
 Created-By: Apache Maven Bundle Plugin 5.1.9
 Embed-Dependency: httpclient,httpcore,jackson-databind,jackson-core,jack
