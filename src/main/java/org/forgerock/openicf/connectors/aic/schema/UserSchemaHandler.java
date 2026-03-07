@@ -10,19 +10,24 @@ import org.identityconnectors.framework.common.objects.ObjectClass;
 import org.identityconnectors.framework.common.objects.ObjectClassInfo;
 import org.identityconnectors.framework.common.objects.ObjectClassInfoBuilder;
 
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class UserSchemaHandler {
 
     private final CrestHttpClient http;
+    private final String realm;
+    private Map<String, String> relationshipCollections = Collections.emptyMap();
 
-    public UserSchemaHandler(CrestHttpClient http) {
+    public UserSchemaHandler(CrestHttpClient http, String realm) {
         this.http = http;
+        this.realm = realm;
     }
 
     public ObjectClassInfo getObjectClassInfo() {
-        JsonNode schema = http.get("/openidm/schema/managed/alpha_user", null);
+        JsonNode schema = http.get("/openidm/schema/managed/" + realm + "_user", null);
         JsonNode properties = schema.get("properties");
         if (properties == null || !properties.isObject()) {
             throw new ConnectorException("Invalid schema response: missing 'properties' field");
@@ -30,6 +35,8 @@ public class UserSchemaHandler {
 
         ObjectClassInfoBuilder ocib = new ObjectClassInfoBuilder();
         ocib.setType(ObjectClass.ACCOUNT_NAME);
+
+        Map<String, String> relMap = new LinkedHashMap<>();
 
         for (Iterator<Map.Entry<String, JsonNode>> it = properties.fields(); it.hasNext(); ) {
             Map.Entry<String, JsonNode> entry = it.next();
@@ -41,7 +48,27 @@ public class UserSchemaHandler {
             }
 
             String type = propDef.path("type").asText("string");
-            if ("array".equals(type) && propDef.path("items").has("$ref")) {
+
+            if ("array".equals(type)
+                    && "relationship".equals(propDef.path("items").path("type").asText(""))) {
+                JsonNode rcArray = propDef.path("items").path("resourceCollection");
+                if (!rcArray.isArray() || rcArray.isEmpty()) {
+                    continue;
+                }
+                String collectionPath = rcArray.path(0).path("path").asText(null);
+                if (collectionPath == null || collectionPath.isBlank()) {
+                    continue;
+                }
+                relMap.put(propName, collectionPath);
+
+                AttributeInfoBuilder rab = new AttributeInfoBuilder();
+                rab.setName(propName);
+                rab.setType(String.class);
+                rab.setMultiValued(true);
+                rab.setReturnedByDefault(false);
+                rab.setCreateable(false);
+                rab.setUpdateable(true);
+                ocib.addAttributeInfo(rab.build());
                 continue;
             }
 
@@ -67,18 +94,12 @@ public class UserSchemaHandler {
             ocib.addAttributeInfo(aib.build());
         }
 
-        for (String relAttr : new String[]{"roles", "memberOfOrg", "adminOfOrg", "ownerOfOrg"}) {
-            AttributeInfoBuilder rab = new AttributeInfoBuilder();
-            rab.setName(relAttr);
-            rab.setType(String.class);
-            rab.setMultiValued(true);
-            rab.setReturnedByDefault(false);
-            rab.setCreateable(false);
-            rab.setUpdateable(true);
-            ocib.addAttributeInfo(rab.build());
-        }
-
+        this.relationshipCollections = Collections.unmodifiableMap(relMap);
         return ocib.build();
+    }
+
+    public Map<String, String> getRelationshipCollections() {
+        return relationshipCollections;
     }
 
     private static void applyType(AttributeInfoBuilder aib, String type) {

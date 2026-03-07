@@ -12,6 +12,7 @@ import org.forgerock.openicf.connectors.aic.util.CrestHttpClient;
 import org.identityconnectors.framework.common.exceptions.ConnectorException;
 import org.identityconnectors.framework.common.objects.Attribute;
 import org.identityconnectors.framework.common.objects.ObjectClass;
+import org.identityconnectors.framework.common.objects.ObjectClassInfo;
 import org.identityconnectors.framework.common.objects.OperationOptions;
 import org.identityconnectors.framework.common.objects.ResultsHandler;
 import org.identityconnectors.framework.common.objects.Schema;
@@ -33,6 +34,7 @@ import org.identityconnectors.framework.spi.operations.UpdateOp;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
 
 @ConnectorClass(
@@ -54,6 +56,8 @@ public class PingAICConnector implements
 //  private OrganizationSchemaHandler orgSchemaHandler;
 //  private RoleSchemaHandler roleSchemaHandler;
 
+    private ObjectClassInfo userObjectClassInfo;
+
     @Override
     public PingAICConfiguration getConfiguration() {
         return cfg;
@@ -68,11 +72,14 @@ public class PingAICConnector implements
 //      String orgUrl  = "/openidm/managed/" + cfg.getRealm() + "_organization";
 //      String roleUrl = "/openidm/managed/" + cfg.getRealm() + "_role";
 
-        this.userHandler = new UserHandler(http, userUrl, cfg);
+        this.userSchemaHandler = new UserSchemaHandler(http, cfg.getRealm());
+        this.userObjectClassInfo = userSchemaHandler.getObjectClassInfo();
+        Map<String, String> relCollections = userSchemaHandler.getRelationshipCollections();
+
+        this.userHandler = new UserHandler(http, userUrl, cfg, relCollections);
 //      this.orgHandler  = new OrganizationHandler(http, orgUrl, cfg);
 //      this.roleHandler = new RoleHandler(http, roleUrl, cfg);
 
-        this.userSchemaHandler = new UserSchemaHandler(http);
 //      this.orgSchemaHandler  = new OrganizationSchemaHandler(http);
 //      this.roleSchemaHandler = new RoleSchemaHandler(http);
     }
@@ -91,7 +98,7 @@ public class PingAICConnector implements
     @Override
     public Schema schema() {
         SchemaBuilder builder = new SchemaBuilder(PingAICConnector.class);
-        builder.defineObjectClass(userSchemaHandler.getObjectClassInfo());
+        builder.defineObjectClass(userObjectClassInfo);
 //      builder.defineObjectClass(orgSchemaHandler.getObjectClassInfo());
 //      builder.defineObjectClass(roleSchemaHandler.getObjectClassInfo());
         return builder.build();

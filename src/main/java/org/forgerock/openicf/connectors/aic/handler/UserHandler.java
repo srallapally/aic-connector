@@ -34,18 +34,12 @@ public class UserHandler extends AbstractHandler {
     private static final CrestFilterTranslator FILTER_TRANSLATOR = new CrestFilterTranslator();
     private static final String NAME_ATTRIBUTE = "userName";
 
-    private static final String ATTR_ROLES = "roles";
-    private static final String ATTR_MEMBER_OF_ORG = "memberOfOrg";
-    private static final String ATTR_ADMIN_OF_ORG = "adminOfOrg";
-    private static final String ATTR_OWNER_OF_ORG = "ownerOfOrg";
-    private static final Set<String> RELATIONSHIP_ATTRIBUTES = Set.of(
-            ATTR_ROLES, ATTR_MEMBER_OF_ORG, ATTR_ADMIN_OF_ORG, ATTR_OWNER_OF_ORG);
+    private final Map<String, String> relationshipCollections;
 
-    private final String orgResourceUrl;
-
-    public UserHandler(CrestHttpClient http, String resourceUrl, PingAICConfiguration cfg) {
+    public UserHandler(CrestHttpClient http, String resourceUrl, PingAICConfiguration cfg,
+                       Map<String, String> relationshipCollections) {
         super(http, resourceUrl, cfg);
-        this.orgResourceUrl = "/openidm/managed/" + cfg.getRealm() + "_organization";
+        this.relationshipCollections = relationshipCollections;
     }
 
     @Override
@@ -69,7 +63,7 @@ public class UserHandler extends AbstractHandler {
         Set<Attribute> scalarAttrs = new LinkedHashSet<>();
         Set<Attribute> relationshipAttrs = new LinkedHashSet<>();
         for (Attribute attr : attributes) {
-            if (RELATIONSHIP_ATTRIBUTES.contains(attr.getName())) {
+            if (relationshipCollections.containsKey(attr.getName())) {
                 relationshipAttrs.add(attr);
             } else {
                 scalarAttrs.add(attr);
@@ -154,7 +148,7 @@ public class UserHandler extends AbstractHandler {
 
         Set<String> requestedRelationships = new HashSet<>();
         for (String attr : attrsToGet) {
-            if (RELATIONSHIP_ATTRIBUTES.contains(attr)) {
+            if (relationshipCollections.containsKey(attr)) {
                 requestedRelationships.add(attr);
             }
         }
@@ -181,11 +175,11 @@ public class UserHandler extends AbstractHandler {
         return builder.build();
     }
 
-    private List<String> fetchRelationshipIds(String userId, String attrName) {
+    private List<String> fetchRelationshipIds(String userId, String fieldName) {
         Map<String, String> params = new LinkedHashMap<>();
         params.put("_queryFilter", "true");
-        params.put("_fields", "_ref,_refResourceCollection,_refResourceId,_refProperties,name");
-        JsonNode response = http.get(resourceUrl + "/" + userId + "/" + attrName, params);
+        params.put("_fields", "_ref,_refResourceCollection,_refResourceId,_refProperties");
+        JsonNode response = http.get(resourceUrl + "/" + userId + "/" + fieldName, params);
 
         List<String> ids = new ArrayList<>();
         JsonNode results = response.get("result");
@@ -202,7 +196,7 @@ public class UserHandler extends AbstractHandler {
 
     // ── Relationship write helpers ────────────────────────────────────────────
 
-    private void syncRelationship(String userId, String attrName, List<Object> desiredValues) {
+    private void syncRelationship(String userId, String fieldName, List<Object> desiredValues) {
         Set<String> desired = new LinkedHashSet<>();
         if (desiredValues != null) {
             for (Object v : desiredValues) {
@@ -212,7 +206,7 @@ public class UserHandler extends AbstractHandler {
             }
         }
 
-        Map<String, RelationshipEntry> current = fetchCurrentRelationships(userId, attrName);
+        Map<String, RelationshipEntry> current = fetchCurrentRelationships(userId, fieldName);
 
         Set<String> toAdd = new LinkedHashSet<>(desired);
         toAdd.removeAll(current.keySet());
@@ -220,18 +214,18 @@ public class UserHandler extends AbstractHandler {
         toRemove.removeAll(desired);
 
         for (String id : toAdd) {
-            applyRelationshipAdd(userId, attrName, id);
+            applyRelationshipAdd(userId, fieldName, id);
         }
         for (String id : toRemove) {
-            applyRelationshipRemove(userId, attrName, id, current.get(id));
+            applyRelationshipRemove(userId, fieldName, current.get(id));
         }
     }
 
-    private Map<String, RelationshipEntry> fetchCurrentRelationships(String userId, String attrName) {
+    private Map<String, RelationshipEntry> fetchCurrentRelationships(String userId, String fieldName) {
         Map<String, String> params = new LinkedHashMap<>();
         params.put("_queryFilter", "true");
-        params.put("_fields", "_ref,_refResourceCollection,_refResourceId,_refProperties,name");
-        JsonNode response = http.get(resourceUrl + "/" + userId + "/" + attrName, params);
+        params.put("_fields", "_ref,_refResourceCollection,_refResourceId,_refProperties");
+        JsonNode response = http.get(resourceUrl + "/" + userId + "/" + fieldName, params);
 
         Map<String, RelationshipEntry> map = new LinkedHashMap<>();
         JsonNode results = response.get("result");
@@ -253,33 +247,24 @@ public class UserHandler extends AbstractHandler {
         return map;
     }
 
-    private void applyRelationshipAdd(String userId, String attrName, String targetId) {
+    private void applyRelationshipAdd(String userId, String fieldName, String targetId) {
+        String collectionPath = relationshipCollections.get(fieldName);
         ArrayNode ops = MAPPER.createArrayNode();
         ObjectNode op = ops.addObject();
         op.put("operation", "add");
-
-        if (ATTR_ROLES.equals(attrName)) {
-            op.put("field", "/roles/-");
-            ObjectNode value = MAPPER.createObjectNode();
-            value.put("_ref", "managed/" + cfg.getRealm() + "_role/" + targetId);
-            op.set("value", value);
-            http.patch(resourceUrl + "/" + userId, ops);
-        } else {
-            String orgField = orgFieldForAttribute(attrName);
-            op.put("field", "/" + orgField + "/-");
-            ObjectNode value = MAPPER.createObjectNode();
-            value.put("_ref", "managed/" + cfg.getRealm() + "_user/" + userId);
-            op.set("value", value);
-            http.patch(orgResourceUrl + "/" + targetId, ops);
-        }
+        op.put("field", "/" + fieldName + "/-");
+        ObjectNode value = MAPPER.createObjectNode();
+        value.put("_ref", collectionPath + "/" + targetId);
+        op.set("value", value);
+        http.patch(resourceUrl + "/" + userId, ops);
     }
 
-    private void applyRelationshipRemove(String userId, String attrName, String targetId,
+    private void applyRelationshipRemove(String userId, String fieldName,
                                          RelationshipEntry entry) {
         ArrayNode ops = MAPPER.createArrayNode();
         ObjectNode op = ops.addObject();
         op.put("operation", "remove");
-
+        op.put("field", "/" + fieldName);
         ObjectNode value = MAPPER.createObjectNode();
         value.put("_ref", entry.ref);
         value.put("_refResourceCollection", entry.refResourceCollection);
@@ -288,26 +273,8 @@ public class UserHandler extends AbstractHandler {
         refProps.put("_id", entry.refPropertiesId);
         refProps.put("_rev", entry.refPropertiesRev);
         value.set("_refProperties", refProps);
-
-        if (ATTR_ROLES.equals(attrName)) {
-            op.put("field", "/roles");
-            op.set("value", value);
-            http.patch(resourceUrl + "/" + userId, ops);
-        } else {
-            String orgField = orgFieldForAttribute(attrName);
-            op.put("field", "/" + orgField);
-            op.set("value", value);
-            http.patch(orgResourceUrl + "/" + targetId, ops);
-        }
-    }
-
-    private static String orgFieldForAttribute(String attrName) {
-        switch (attrName) {
-            case ATTR_MEMBER_OF_ORG: return "members";
-            case ATTR_ADMIN_OF_ORG:  return "admins";
-            case ATTR_OWNER_OF_ORG:  return "owners";
-            default: throw new IllegalArgumentException("Not an org relationship: " + attrName);
-        }
+        op.set("value", value);
+        http.patch(resourceUrl + "/" + userId, ops);
     }
 
     // ── RelationshipEntry ─────────────────────────────────────────────────────
