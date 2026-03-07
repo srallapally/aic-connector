@@ -67,6 +67,17 @@ public class UserSchemaHandler {
             ocib.addAttributeInfo(aib.build());
         }
 
+        for (String relAttr : new String[]{"roles", "memberOfOrg", "adminOfOrg", "ownerOfOrg"}) {
+            AttributeInfoBuilder rab = new AttributeInfoBuilder();
+            rab.setName(relAttr);
+            rab.setType(String.class);
+            rab.setMultiValued(true);
+            rab.setReturnedByDefault(false);
+            rab.setCreateable(false);
+            rab.setUpdateable(true);
+            ocib.addAttributeInfo(rab.build());
+        }
+
         return ocib.build();
     }
 
