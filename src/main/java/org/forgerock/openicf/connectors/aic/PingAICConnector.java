@@ -3,10 +3,10 @@ package org.forgerock.openicf.connectors.aic;
 
 import org.forgerock.openicf.connectors.aic.handler.CrudqHandler;
 // import org.forgerock.openicf.connectors.aic.handler.OrganizationHandler;
-// import org.forgerock.openicf.connectors.aic.handler.RoleHandler;
+import org.forgerock.openicf.connectors.aic.handler.RoleHandler;
 import org.forgerock.openicf.connectors.aic.handler.UserHandler;
 // import org.forgerock.openicf.connectors.aic.schema.OrganizationSchemaHandler;
-// import org.forgerock.openicf.connectors.aic.schema.RoleSchemaHandler;
+import org.forgerock.openicf.connectors.aic.schema.RoleSchemaHandler;
 import org.forgerock.openicf.connectors.aic.schema.UserSchemaHandler;
 import org.forgerock.openicf.connectors.aic.util.CrestHttpClient;
 import org.identityconnectors.framework.common.exceptions.ConnectorException;
@@ -50,13 +50,14 @@ public class PingAICConnector implements
 
     private UserHandler userHandler;
 //  private OrganizationHandler orgHandler;
-//  private RoleHandler roleHandler;
+    private RoleHandler roleHandler;
 
     private UserSchemaHandler userSchemaHandler;
 //  private OrganizationSchemaHandler orgSchemaHandler;
-//  private RoleSchemaHandler roleSchemaHandler;
+    private RoleSchemaHandler roleSchemaHandler;
 
     private ObjectClassInfo userObjectClassInfo;
+    private ObjectClassInfo roleObjectClassInfo;
 
     @Override
     public PingAICConfiguration getConfiguration() {
@@ -78,10 +79,15 @@ public class PingAICConnector implements
 
         this.userHandler = new UserHandler(http, userUrl, cfg, relCollections);
 //      this.orgHandler  = new OrganizationHandler(http, orgUrl, cfg);
-//      this.roleHandler = new RoleHandler(http, roleUrl, cfg);
+
+        String roleUrl = "/openidm/managed/" + cfg.getRealm() + "_role";
+        this.roleSchemaHandler = new RoleSchemaHandler(http, cfg.getRealm());
+        this.roleObjectClassInfo = roleSchemaHandler.getObjectClassInfo();
+        this.roleHandler = new RoleHandler(http, roleUrl, cfg,
+                roleSchemaHandler.getRelationshipCollections(),
+                roleSchemaHandler.getReadOnlyRelationships());
 
 //      this.orgSchemaHandler  = new OrganizationSchemaHandler(http);
-//      this.roleSchemaHandler = new RoleSchemaHandler(http);
     }
 
     @Override
@@ -99,8 +105,8 @@ public class PingAICConnector implements
     public Schema schema() {
         SchemaBuilder builder = new SchemaBuilder(PingAICConnector.class);
         builder.defineObjectClass(userObjectClassInfo);
+        builder.defineObjectClass(roleObjectClassInfo);
 //      builder.defineObjectClass(orgSchemaHandler.getObjectClassInfo());
-//      builder.defineObjectClass(roleSchemaHandler.getObjectClassInfo());
         return builder.build();
     }
 
@@ -165,9 +171,9 @@ public class PingAICConnector implements
 //      if (objectClass.is("GROUP")) {
 //          return orgHandler;
 //      }
-//      if (objectClass.is("ROLE")) {
-//          return roleHandler;
-//      }
+        if (objectClass.is("ROLE")) {
+            return roleHandler;
+        }
         throw new ConnectorException("Unknown object class: " + objectClass.getObjectClassValue());
     }
 }

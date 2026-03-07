@@ -10,9 +10,9 @@ Provisions managed/alpha_user, managed/alpha_organization, managed/alpha_role.
 - Maven with maven-bundle-plugin (packaging: bundle)
 
 ## Object classes
-- `__ACCOUNT__`  → /openidm/managed/{realm}_user
-- `GROUP`        → /openidm/managed/{realm}_organization
-- `ROLE`         → /openidm/managed/{realm}_role
+- `__ACCOUNT__`  → /openidm/managed/{realm}_user (active)
+- `GROUP`        → /openidm/managed/{realm}_organization (stub — not yet wired)
+- `ROLE`         → /openidm/managed/{realm}_role (active)
 
 ## Operations per object class
 - Create  (POST to ?_action=create)
@@ -26,6 +26,7 @@ Provisions managed/alpha_user, managed/alpha_organization, managed/alpha_role.
 NOTE: There is no GetOp. Read-by-ID is handled inside executeQuery.
 
 ## executeQuery rules
+These rules apply to all handlers (UserHandler, RoleHandler, and future OrganizationHandler).
 - If filter is EqualsFilter on __UID__ or __NAME__ → GET /{id} directly, call
   handler.handle() once with the result. Return new SearchResult(). Do not execute
   a paginated query.
@@ -73,9 +74,14 @@ underscore prefix — do not read "_pagedResultsCookie").
 Return new SearchResult(cookie, remaining) — remaining defaults to -1 if absent.
 
 ## Relationship attributes
-Role and org membership arrays (e.g. `roles`, `memberOfOrg`) are relationship
-fields in CREST. Do NOT map these as normal attributes. Exclude them from all
-schema definitions. They are deferred to a later phase.
+Relationship attributes are discovered dynamically from the AIC schema at
+connector init time. Properties where items.type == "relationship" with a
+valid resourceCollection path become multi-valued String ICF attributes.
+Each stores a list of target object UUIDs (_refResourceId values).
+Schema flags: NOT_RETURNED_BY_DEFAULT, createable=false, updateable=true
+(unless marked read-only, e.g. assignments on ROLE).
+Read: only fetched when listed in attributesToGet.
+Write: diff-based grant/revoke via PATCH on the owning object.
 
 ---
 
@@ -270,18 +276,23 @@ Last updated: 2026-03-07
 
 ### Complete
 - PingAICConnector, PingAICConfiguration, CrestHttpClient, CrestFilterTranslator
-- AbstractHandler, UserHandler, UserSchemaHandler
+- AbstractHandler, UserHandler, UserSchemaHandler (dynamic relationship discovery)
+- RoleSchemaHandler (dynamic schema, read-only assignments)
+- RoleHandler (full CRUDQ + dynamic relationship grant/revoke)
+- RoleHandler wired in PingAICConnector
 - executeQuery pagination fix (single request, IDM-driven paging)
 - pom.xml Embed-Directory=lib fix (pending verify after rebuild)
 
 ### Stubs (not wired)
 - OrganizationHandler, OrganizationSchemaHandler
-- RoleHandler, RoleSchemaHandler
 
 ### Next
-1. Verify Bundle-ClassPath shows lib/ prefix after mvn clean package
-2. Test user CRUD against live AIC tenant
-3. Implement OrganizationHandler + OrganizationSchemaHandler (nameAttribute=name)
-4. Implement RoleHandler + RoleSchemaHandler (nameAttribute=name)
-5. Uncomment org/role in PingAICConnector
-6. Unit tests for AbstractHandler.buildQueryFilter
+1. Apply and verify pom.xml Embed-Directory=lib fix
+2. Deploy to RCS, verify availableConnectors
+3. Test user CRUD against live AIC tenant
+4. Test role CRUD against live AIC tenant
+5. Implement OrganizationHandler + OrganizationSchemaHandler (nameAttribute=name)
+6. Uncomment org in PingAICConnector
+7. Revisit UserHandler: skip taskPrincipals and taskProxies, make reports read-only
+8. Unit tests for AbstractHandler.buildQueryFilter
+9. Unit tests for relationship diff logic
