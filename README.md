@@ -30,6 +30,37 @@ The connector provisions against the managed object CREST API:
 - **Update** uses CREST PATCH (`[{"operation":"replace","field":"/attr","value":...}]`), never PUT.
 - **LiveSync** (`SyncOp`) is not supported. Use reconciliation with `timestampAttribute` / `timestampValue` for incremental sync (see [Delta Reconciliation](#delta-reconciliation)).
 
+## Relationship Attributes
+
+Relationship attributes (e.g. role memberships, org memberships) are discovered dynamically from the live AIC schema at connector initialisation. Any user property where `items.type == "relationship"` with a valid `resourceCollection` path is registered as a multi-valued String ICF attribute.
+
+Common relationship attributes:
+
+| Attribute | Target collection |
+|---|---|
+| `roles` | `managed/{realm}_role` |
+| `memberOfOrg` | `managed/{realm}_organization` |
+| `adminOfOrg` | `managed/{realm}_organization` |
+| `ownerOfOrg` | `managed/{realm}_organization` |
+
+Each attribute holds a list of target object UUIDs (`_refResourceId` values).
+
+**Schema flags:** `NOT_RETURNED_BY_DEFAULT`, not createable, updateable, readable.
+
+**Read:** Relationship data is only fetched when the attribute is explicitly listed in `attributesToGet`. Each requested relationship triggers a sub-resource query:
+
+```
+GET /openidm/managed/{realm}_user/{userId}/{fieldName}?_queryFilter=true&_fields=_refResourceId,...
+```
+
+**Update:** The connector performs diff-based grant/revoke via PATCH on the user object:
+
+1. Fetches current relationship entries for the attribute
+2. Computes adds (desired - current) and removes (current - desired)
+3. Issues one PATCH per add (`operation: "add"`, `field: "/{fieldName}/-"`) and one per remove (`operation: "remove"`, `field: "/{fieldName}"`)
+
+Passing a null or empty value for a relationship attribute removes all current memberships.
+
 ## Authentication
 
 OAuth2 client credentials grant. The token endpoint is derived from configuration:
