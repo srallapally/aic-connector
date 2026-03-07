@@ -1,0 +1,51 @@
+Manifest-Version: 1.0
+Bnd-LastModified: 1772907609056
+Build-Jdk-Spec: 24
+Bundle-ClassPath: .,httpclient-4.5.14.jar,httpcore-4.4.16.jar,jackson-da
+ tabind-2.16.2.jar,jackson-core-2.16.2.jar,jackson-annotations-2.16.2.ja
+ r
+Bundle-Description: OpenICF connector for PingOne Advanced Identity Clou
+ d CREST API
+Bundle-ManifestVersion: 2
+Bundle-Name: PingOne Advanced Identity Cloud Connector
+Bundle-SymbolicName: ping-aic-connector
+Bundle-Version: 1.5.20.32
+ConnectorBundle-FrameworkVersion: 1.5.20.32
+ConnectorBundle-Name: ping-aic-connector
+ConnectorBundle-Version: 1.5.20.32
+Created-By: Apache Maven Bundle Plugin 5.1.9
+Embed-Dependency: httpclient,httpcore,jackson-databind,jackson-core,jack
+ son-annotations,commons-logging,commons-codec
+Embed-Transitive: false
+Embedded-Artifacts: httpclient-4.5.14.jar;g="org.apache.httpcomponents";
+ a="httpclient";v="4.5.14",httpcore-4.4.16.jar;g="org.apache.httpcompone
+ nts";a="httpcore";v="4.4.16",jackson-databind-2.16.2.jar;g="com.fasterx
+ ml.jackson.core";a="jackson-databind";v="2.16.2",jackson-core-2.16.2.ja
+ r;g="com.fasterxml.jackson.core";a="jackson-core";v="2.16.2",jackson-an
+ notations-2.16.2.jar;g="com.fasterxml.jackson.core";a="jackson-annotati
+ ons";v="2.16.2"
+Export-Package: org.forgerock.openicf.connectors.aic;version="1.5.20.32"
+ ;uses:="org.identityconnectors.common.security,org.identityconnectors.f
+ ramework.common.objects,org.identityconnectors.framework.common.objects
+ .filter,org.identityconnectors.framework.spi,org.identityconnectors.fra
+ mework.spi.operations"
+Import-Package: org.identityconnectors.common.security;version="1.5.20.3
+ 2",org.identityconnectors.framework.common.exceptions;version="1.5.20.3
+ 2",org.identityconnectors.framework.common.objects;version="1.5.20.32",
+ org.identityconnectors.framework.common.objects.filter;version="1.5.20.
+ 32",org.identityconnectors.framework.spi;version="1.5.20.32",org.identi
+ tyconnectors.framework.spi.operations;version="1.5.20.32",java.beans,ja
+ va.io,java.lang,java.lang.annotation,java.lang.invoke,java.lang.ref,jav
+ a.lang.reflect,java.math,java.net,java.nio,java.nio.channels,java.nio.c
+ harset,java.nio.file,java.nio.file.spi,java.security,java.security.cert
+ ,java.sql,java.text,java.util,java.util.concurrent,java.util.concurrent
+ .atomic,java.util.concurrent.locks,java.util.function,java.util.logging
+ ,java.util.regex,java.util.stream,java.util.zip,javax.crypto,javax.cryp
+ to.spec,javax.naming,javax.naming.directory,javax.naming.ldap,javax.net
+ ,javax.net.ssl,javax.security.auth.x500,javax.xml.datatype,javax.xml.na
+ mespace,javax.xml.parsers,javax.xml.transform,javax.xml.transform.dom,j
+ avax.xml.transform.stream,org.apache.commons.codec.binary;version="[1.1
+ 1,2)",org.apache.commons.logging;version="[1.2,2)",org.ietf.jgss,org.w3
+ c.dom,org.xml.sax
+Require-Capability: osgi.ee;filter:="(&(osgi.ee=JavaSE)(version=11))"
+Tool: Bnd-6.3.1.202206071316
