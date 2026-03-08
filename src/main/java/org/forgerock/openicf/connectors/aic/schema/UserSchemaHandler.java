@@ -85,7 +85,7 @@ public class UserSchemaHandler {
                     rab.setName(propName);
                     rab.setType(String.class);
                     rab.setMultiValued(true);
-                    rab.setReturnedByDefault(false);
+                    rab.setReturnedByDefault(true);
                     rab.setCreateable(false);
                     rab.setUpdateable(true);
                     ocib.addAttributeInfo(rab.build());

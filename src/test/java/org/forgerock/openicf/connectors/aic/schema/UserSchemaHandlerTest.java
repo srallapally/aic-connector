@@ -65,7 +65,7 @@ class UserSchemaHandlerTest {
             assertEquals(String.class, ai.getType(), name + " should be String type");
             assertFalse(ai.isCreateable(), name + " should NOT be createable");
             assertTrue(ai.isUpdateable(), name + " should be updateable");
-            assertFalse(ai.isReturnedByDefault(), name + " should NOT be returnedByDefault");
+            assertTrue(ai.isReturnedByDefault(), name + " should be returnedByDefault");
         }
     }
 

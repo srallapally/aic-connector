@@ -21,6 +21,9 @@ import org.identityconnectors.framework.spi.SearchResultsHandler;
 import org.identityconnectors.framework.common.objects.filter.EqualsFilter;
 import org.identityconnectors.framework.common.objects.filter.Filter;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -31,6 +34,7 @@ import java.util.Set;
 
 public class UserHandler extends AbstractHandler {
 
+    private static final Logger LOG = LoggerFactory.getLogger(UserHandler.class);
     private static final CrestFilterTranslator FILTER_TRANSLATOR = new CrestFilterTranslator();
     private static final String NAME_ATTRIBUTE = "userName";
 
@@ -55,7 +59,9 @@ public class UserHandler extends AbstractHandler {
     @Override
     public ConnectorObject getObject(ObjectClass objectClass, Uid uid, OperationOptions options) {
         JsonNode response = http.get(resourceUrl + "/" + uid.getUidValue(), null);
+        LOG.debug("AIC user JSON response: {}", response);
         ConnectorObject base = connectorObjectFromJson(response, objectClass, NAME_ATTRIBUTE);
+        LOG.debug("ConnectorObject __ACCOUNT__ attributes: {}", base.getAttributes());
         return enrichWithRelationships(base, options);
     }
 
@@ -149,16 +155,19 @@ public class UserHandler extends AbstractHandler {
 
     private ConnectorObject enrichWithRelationships(ConnectorObject base, OperationOptions options) {
         String[] attrsToGet = options.getAttributesToGet();
-        if (attrsToGet == null) {
-            return base;
-        }
+        LOG.debug("enrichWithRelationships for user {}: attrsToGet={}", base.getUid().getUidValue(), attrsToGet);
 
         Set<String> requestedRelationships = new HashSet<>();
-        for (String attr : attrsToGet) {
-            if (relationshipCollections.containsKey(attr)) {
-                requestedRelationships.add(attr);
+        if (attrsToGet == null) {
+            requestedRelationships.addAll(relationshipCollections.keySet());
+        } else {
+            for (String attr : attrsToGet) {
+                if (relationshipCollections.containsKey(attr)) {
+                    requestedRelationships.add(attr);
+                }
             }
         }
+        LOG.debug("Requested relationships to fetch: {}", requestedRelationships);
         if (requestedRelationships.isEmpty()) {
             return base;
         }
@@ -176,6 +185,7 @@ public class UserHandler extends AbstractHandler {
         String userId = base.getUid().getUidValue();
         for (String relAttr : requestedRelationships) {
             List<String> refIds = fetchRelationshipIds(userId, relAttr);
+            LOG.debug("User {} relationship '{}': resolved IDs {}", userId, relAttr, refIds);
             builder.addAttribute(relAttr, refIds);
         }
 
@@ -183,10 +193,13 @@ public class UserHandler extends AbstractHandler {
     }
 
     private List<String> fetchRelationshipIds(String userId, String fieldName) {
+        String url = resourceUrl + "/" + userId + "/" + fieldName;
+        LOG.debug("Fetching relationship sub-resource: GET {}", url);
         Map<String, String> params = new LinkedHashMap<>();
         params.put("_queryFilter", "true");
         params.put("_fields", "_ref,_refResourceCollection,_refResourceId,_refProperties");
-        JsonNode response = http.get(resourceUrl + "/" + userId + "/" + fieldName, params);
+        JsonNode response = http.get(url, params);
+        LOG.debug("Relationship '{}' raw response: {}", fieldName, response);
 
         List<String> ids = new ArrayList<>();
         JsonNode results = response.get("result");
