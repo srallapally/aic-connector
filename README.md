@@ -36,13 +36,16 @@ OpenICF Java connector for PingOne Advanced Identity Cloud (AIC). Provisions and
 
 Relationship attributes are discovered dynamically from the AIC schema at connector init time. No relationship field names are hardcoded. Each relationship attribute stores a list of target object UUIDs (`_refResourceId` values).
 
-Relationships are only fetched when explicitly requested via `attributesToGet` in `OperationOptions` (`NOT_RETURNED_BY_DEFAULT`).
+Non-virtual relationship attributes are registered as `creatable=true`, `updateable=true`, `returnedByDefault=true`. When `attrsToGet` is null (all attributes), all relationship collections are fetched automatically.
 
 Grant/revoke uses replace semantics: IDM passes the full desired list; the connector diffs against current state and issues individual PATCH calls for each addition and removal.
 
 | Object Class | Relationship | Target Collection | Updateable |
 |---|---|---|---|
 | `__ACCOUNT__` | `roles` | `managed/{realm}_role` | Yes |
+| `__ACCOUNT__` | `applications` | `managed/{realm}_application` | Yes |
+| `__ACCOUNT__` | `assignments` | `managed/{realm}_assignment` | Yes |
+| `__ACCOUNT__` | `groups` | `managed/{realm}_group` | Yes |
 | `__ACCOUNT__` | `memberOfOrg` | `managed/{realm}_organization` | Yes |
 | `__ACCOUNT__` | `adminOfOrg` | `managed/{realm}_organization` | Yes |
 | `__ACCOUNT__` | `ownerOfOrg` | `managed/{realm}_organization` | Yes |
@@ -137,6 +140,23 @@ To run incremental reconciliation instead of a full scan, configure `timestampAt
 ```
 
 The connector appends `frIndexedString20 ge "2024-01-15T08:00:00Z"` to every search filter, returning only objects modified on or after the given timestamp. Update `timestampValue` between runs to advance the watermark.
+
+## Bugs Fixed
+
+- **connectorObjectFromJson null handling** — Null scalar fields now emit `Collections.emptyList()` instead of being silently dropped, ensuring consistent attribute presence on the ConnectorObject.
+- **connectorObjectFromJson array-of-object items** — Relationship array items with object structure now use `item.toString()` (full JSON) instead of attempting to extract a single `_id` field.
+- **enrichWithRelationships skip guard** — Removed incorrect guard that prevented sub-resource fetch for relationship attributes (roles, applications, assignments, groups) when the base ConnectorObject already contained an inline empty-list attribute.
+- **attrsToGet null handling** — When `attrsToGet` is null (meaning all attributes), the connector now fetches all relationship collections instead of short-circuiting and returning none.
+- **Relationship schema flags** — Non-virtual relationship attributes corrected to `creatable=true`, `updateable=true`, `returnedByDefault=true` in both UserSchemaHandler and RoleSchemaHandler. Previously registered as NOT_CREATABLE and NOT_RETURNED_BY_DEFAULT.
+
+## Debug Logging
+
+SLF4J debug logging traces the full read path:
+
+- `AbstractHandler.connectorObjectFromJson()` — logs `_id`, objectClass, and each field's mapping decision (null→emptyList, object→skip, array→values, scalar→value)
+- `UserHandler.getObject()` — logs raw AIC JSON response and resulting ConnectorObject attributes
+- `UserHandler.enrichWithRelationships()` — logs attrsToGet, requested relationships set, and resolved IDs per relationship
+- `UserHandler.fetchRelationshipIds()` — logs sub-resource URL and raw response
 
 ## Build
 
