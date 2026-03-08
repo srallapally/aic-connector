@@ -1,0 +1,10 @@
+# AIC Connector Test Properties
+# Copy this file to aic-test.properties and fill in your values.
+# Do NOT commit aic-test.properties — it contains secrets.
+
+aic.jarPath=target/ping-aic-connector-1.5.20.32.jar
+aic.version=1.5.20.32
+aic.baseUrl=https://your-tenant.forgeblocks.com
+aic.realm=alpha
+aic.clientId=your-client-id
+aic.clientSecret=your-client-secret
