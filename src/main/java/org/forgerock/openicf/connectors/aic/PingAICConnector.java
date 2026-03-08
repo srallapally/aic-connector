@@ -77,7 +77,8 @@ public class PingAICConnector implements
         this.userObjectClassInfo = userSchemaHandler.getObjectClassInfo();
         Map<String, String> relCollections = userSchemaHandler.getRelationshipCollections();
 
-        this.userHandler = new UserHandler(http, userUrl, cfg, relCollections);
+        this.userHandler = new UserHandler(http, userUrl, cfg, relCollections,
+                userSchemaHandler.getReadOnlyAttributes());
 //      this.orgHandler  = new OrganizationHandler(http, orgUrl, cfg);
 
         String roleUrl = "/openidm/managed/" + cfg.getRealm() + "_role";

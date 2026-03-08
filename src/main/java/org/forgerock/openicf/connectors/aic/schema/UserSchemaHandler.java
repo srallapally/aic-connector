@@ -11,15 +11,18 @@ import org.identityconnectors.framework.common.objects.ObjectClassInfo;
 import org.identityconnectors.framework.common.objects.ObjectClassInfoBuilder;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 
 public class UserSchemaHandler {
 
     private final CrestHttpClient http;
     private final String realm;
     private Map<String, String> relationshipCollections = Collections.emptyMap();
+    private Set<String> readOnlyAttributes = Collections.emptySet();
 
     public UserSchemaHandler(CrestHttpClient http, String realm) {
         this.http = http;
@@ -37,6 +40,7 @@ public class UserSchemaHandler {
         ocib.setType(ObjectClass.ACCOUNT_NAME);
 
         Map<String, String> relMap = new LinkedHashMap<>();
+        Set<String> roAttrs = new HashSet<>();
 
         for (Iterator<Map.Entry<String, JsonNode>> it = properties.fields(); it.hasNext(); ) {
             Map.Entry<String, JsonNode> entry = it.next();
@@ -81,11 +85,15 @@ public class UserSchemaHandler {
                 continue;
             }
 
+            boolean isVirtual = propDef.path("isVirtual").asBoolean(false);
             boolean userEditable = propDef.path("userEditable").asBoolean(true);
             boolean returnByDefault = propDef.path("returnByDefault").asBoolean(true);
-            if (!userEditable) {
+            if (isVirtual || !userEditable) {
                 aib.setCreateable(false);
                 aib.setUpdateable(false);
+            }
+            if (isVirtual) {
+                roAttrs.add(propName);
             }
             if (!returnByDefault) {
                 aib.setReturnedByDefault(false);
@@ -95,11 +103,16 @@ public class UserSchemaHandler {
         }
 
         this.relationshipCollections = Collections.unmodifiableMap(relMap);
+        this.readOnlyAttributes = Collections.unmodifiableSet(roAttrs);
         return ocib.build();
     }
 
     public Map<String, String> getRelationshipCollections() {
         return relationshipCollections;
+    }
+
+    public Set<String> getReadOnlyAttributes() {
+        return readOnlyAttributes;
     }
 
     private static void applyType(AttributeInfoBuilder aib, String type) {

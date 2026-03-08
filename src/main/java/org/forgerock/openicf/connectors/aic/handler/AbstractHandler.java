@@ -64,6 +64,11 @@ public abstract class AbstractHandler implements CrudqHandler {
                 for (JsonNode item : fieldValue) {
                     if (item.isTextual()) {
                         values.add(item.asText());
+                    } else if (item.isObject()) {
+                        String extracted = extractIdFromObject(item);
+                        if (extracted != null) {
+                            values.add(extracted);
+                        }
                     }
                 }
                 builder.addAttribute(fieldName, values);
@@ -73,6 +78,18 @@ public abstract class AbstractHandler implements CrudqHandler {
         }
 
         return builder.build();
+    }
+
+    private static String extractIdFromObject(JsonNode obj) {
+        JsonNode refResourceId = obj.get("_refResourceId");
+        if (refResourceId != null && refResourceId.isTextual()) {
+            return refResourceId.asText();
+        }
+        JsonNode id = obj.get("_id");
+        if (id != null && id.isTextual()) {
+            return id.asText();
+        }
+        return null;
     }
 
     private static Object scalarValue(JsonNode node) {

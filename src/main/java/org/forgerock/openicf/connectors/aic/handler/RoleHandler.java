@@ -175,6 +175,9 @@ public class RoleHandler extends AbstractHandler {
 
         String roleId = base.getUid().getUidValue();
         for (String relAttr : requestedRelationships) {
+            if (base.getAttributeByName(relAttr) != null) {
+                continue;
+            }
             List<String> refIds = fetchRelationshipIds(roleId, relAttr);
             builder.addAttribute(relAttr, refIds);
         }

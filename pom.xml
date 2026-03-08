@@ -139,10 +139,10 @@
                 <extensions>true</extensions>
                 <configuration>
                     <instructions>
-                        <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
+                        <Bundle-SymbolicName>org.forgerock.openicf.connectors.ping-aic-connector</Bundle-SymbolicName>
                         <Bundle-Version>${project.version}</Bundle-Version>
-                        <ConnectorBundle-FrameworkVersion>${openicf.framework.version}</ConnectorBundle-FrameworkVersion>
-                        <ConnectorBundle-Name>${project.artifactId}</ConnectorBundle-Name>
+                        <ConnectorBundle-FrameworkVersion>1.5</ConnectorBundle-FrameworkVersion>
+                        <ConnectorBundle-Name>org.forgerock.openicf.connectors.ping-aic-connector</ConnectorBundle-Name>
                         <ConnectorBundle-Version>${project.version}</ConnectorBundle-Version>
                         <!-- Embed compile-scope deps; framework and slf4j are provided by runtime -->
                         <Embed-Dependency>

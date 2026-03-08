@@ -35,11 +35,14 @@ public class UserHandler extends AbstractHandler {
     private static final String NAME_ATTRIBUTE = "userName";
 
     private final Map<String, String> relationshipCollections;
+    private final Set<String> readOnlyRelationships;
 
     public UserHandler(CrestHttpClient http, String resourceUrl, PingAICConfiguration cfg,
-                       Map<String, String> relationshipCollections) {
+                       Map<String, String> relationshipCollections,
+                       Set<String> readOnlyRelationships) {
         super(http, resourceUrl, cfg);
         this.relationshipCollections = relationshipCollections;
+        this.readOnlyRelationships = readOnlyRelationships;
     }
 
     @Override
@@ -63,7 +66,11 @@ public class UserHandler extends AbstractHandler {
         Set<Attribute> scalarAttrs = new LinkedHashSet<>();
         Set<Attribute> relationshipAttrs = new LinkedHashSet<>();
         for (Attribute attr : attributes) {
-            if (relationshipCollections.containsKey(attr.getName())) {
+            String name = attr.getName();
+            if (readOnlyRelationships.contains(name)) {
+                continue;
+            }
+            if (relationshipCollections.containsKey(name)) {
                 relationshipAttrs.add(attr);
             } else {
                 scalarAttrs.add(attr);
@@ -168,6 +175,9 @@ public class UserHandler extends AbstractHandler {
 
         String userId = base.getUid().getUidValue();
         for (String relAttr : requestedRelationships) {
+            if (base.getAttributeByName(relAttr) != null) {
+                continue;
+            }
             List<String> refIds = fetchRelationshipIds(userId, relAttr);
             builder.addAttribute(relAttr, refIds);
         }

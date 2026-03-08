@@ -232,10 +232,10 @@ The maven-bundle-plugin instructions that produce this:
 
 ```xml
 <instructions>
-  <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
+  <Bundle-SymbolicName>org.forgerock.openicf.connectors.ping-aic-connector</Bundle-SymbolicName>
   <Bundle-Version>${project.version}</Bundle-Version>
   <ConnectorBundle-FrameworkVersion>1.5</ConnectorBundle-FrameworkVersion>
-  <ConnectorBundle-Name>${project.artifactId}</ConnectorBundle-Name>
+  <ConnectorBundle-Name>org.forgerock.openicf.connectors.ping-aic-connector</ConnectorBundle-Name>
   <ConnectorBundle-Version>${project.version}</ConnectorBundle-Version>
   <Embed-Dependency>httpclient,httpcore,jackson-databind,jackson-core,jackson-annotations,commons-logging,commons-codec</Embed-Dependency>
   <Embed-Transitive>false</Embed-Transitive>
@@ -247,6 +247,13 @@ The maven-bundle-plugin instructions that produce this:
   </Import-Package>
 </instructions>
 ```
+
+**IMPORTANT — do not use Maven variables for these three entries:**
+- `Bundle-SymbolicName` MUST be the literal string `org.forgerock.openicf.connectors.ping-aic-connector` — never `${project.artifactId}`
+- `ConnectorBundle-Name` MUST be the literal string `org.forgerock.openicf.connectors.ping-aic-connector` — never `${project.artifactId}`
+- `ConnectorBundle-FrameworkVersion` MUST be the literal string `1.5` — never `${project.version}`
+
+`Bundle-Version` and `ConnectorBundle-Version` using `${project.version}` is correct.
 
 To verify the bundle is correct after `mvn clean package`:
 
