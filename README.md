@@ -168,6 +168,58 @@ Output: `target/ping-aic-connector-1.5.20.32.jar`
 
 Compile-scope dependencies (Apache HttpClient, Jackson) are embedded under `lib/` inside the bundle. The OpenICF framework and SLF4J are provided by the runtime.
 
+## Testing
+
+### Unit tests
+
+Unit tests have no external dependencies and run against local code only:
+
+```bash
+mvn test -pl . -Dtest=CrestFilterTranslatorTest
+```
+
+### Integration tests
+
+Integration tests use the OpenICF connector harness to exercise the connector against a live AIC tenant. They require a built connector JAR and tenant credentials.
+
+**Setup:**
+
+1. Build the connector JAR (skip tests on first build):
+   ```bash
+   mvn clean package -DskipTests
+   ```
+
+2. Copy the example properties file:
+   ```bash
+   cp src/test/resources/aic-test.properties.example src/test/resources/aic-test.properties
+   ```
+
+3. Edit `aic-test.properties` and fill in your tenant values:
+   ```properties
+   aic.jarPath=target/ping-aic-connector-1.5.20.32.jar
+   aic.version=1.5.20.32
+   aic.baseUrl=https://your-tenant.forgeblocks.com
+   aic.realm=alpha
+   aic.clientId=your-client-id
+   aic.clientSecret=your-client-secret
+   ```
+
+4. Run the full test suite:
+   ```bash
+   mvn test
+   ```
+
+> `aic-test.properties` is listed in `.gitignore` — do not commit it.
+
+### Test classes
+
+| Class | Package | Type | Coverage |
+|---|---|---|---|
+| `CrestFilterTranslatorTest` | `aic.util` | Unit | Filter translation (eq, sw, co, and, or, not) |
+| `UserSchemaHandlerTest` | `aic.schema` | Integration | `__ACCOUNT__` schema attributes via `facade.schema()` |
+| `SearchTest` | `aic.search` | Integration | searchAll, search by UID, relationship attributes, effectiveAssignments |
+| `CrudTest` | `aic.crud` | Integration | Create/update/delete lifecycle for `__ACCOUNT__` |
+
 ## Bundle Verification
 
 ```bash
