@@ -63,7 +63,7 @@ class UserSchemaHandlerTest {
             assertNotNull(ai, name + " should be registered as an attribute");
             assertTrue(ai.isMultiValued(), name + " should be multi-valued");
             assertEquals(String.class, ai.getType(), name + " should be String type");
-            assertFalse(ai.isCreateable(), name + " should NOT be createable");
+            assertTrue(ai.isCreateable(), name + " should be createable");
             assertTrue(ai.isUpdateable(), name + " should be updateable");
             assertTrue(ai.isReturnedByDefault(), name + " should be returnedByDefault");
         }

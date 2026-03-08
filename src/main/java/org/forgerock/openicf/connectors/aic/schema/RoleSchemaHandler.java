@@ -75,8 +75,8 @@ public class RoleSchemaHandler {
                 rab.setName(propName);
                 rab.setType(String.class);
                 rab.setMultiValued(true);
-                rab.setReturnedByDefault(false);
-                rab.setCreateable(false);
+                rab.setReturnedByDefault(true);
+                rab.setCreateable(true);
                 rab.setUpdateable(updateable);
                 ocib.addAttributeInfo(rab.build());
                 continue;

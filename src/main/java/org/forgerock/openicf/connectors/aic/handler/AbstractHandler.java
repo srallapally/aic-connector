@@ -17,6 +17,9 @@ import org.identityconnectors.framework.common.objects.ResultsHandler;
 import org.identityconnectors.framework.common.objects.Uid;
 import org.identityconnectors.framework.common.objects.filter.Filter;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -26,6 +29,7 @@ import java.util.Set;
 
 public abstract class AbstractHandler implements CrudqHandler {
 
+    private static final Logger LOG = LoggerFactory.getLogger(AbstractHandler.class);
     protected static final ObjectMapper MAPPER = new ObjectMapper();
 
     protected final CrestHttpClient http;
@@ -44,6 +48,7 @@ public abstract class AbstractHandler implements CrudqHandler {
 
         String id = node.path("_id").asText();
         builder.setUid(id);
+        LOG.debug("connectorObjectFromJson: _id={}, objectClass={}", id, objectClass.getObjectClassValue());
 
         for (Iterator<Map.Entry<String, JsonNode>> it = node.fields(); it.hasNext(); ) {
             Map.Entry<String, JsonNode> entry = it.next();
@@ -58,10 +63,12 @@ public abstract class AbstractHandler implements CrudqHandler {
                 continue;
             }
             if (fieldValue.isNull()) {
+                LOG.debug("  {} -> null, emitting empty list", fieldName);
                 builder.addAttribute(fieldName, Collections.emptyList());
                 continue;
             }
             if (fieldValue.isObject()) {
+                LOG.debug("  {} -> object, skipping", fieldName);
                 continue;
             }
             if (fieldValue.isArray()) {
@@ -73,9 +80,12 @@ public abstract class AbstractHandler implements CrudqHandler {
                         values.add(item.toString());
                     }
                 }
+                LOG.debug("  {} -> array, values={}", fieldName, values);
                 builder.addAttribute(fieldName, values);
             } else {
-                builder.addAttribute(fieldName, scalarValue(fieldValue));
+                Object scalar = scalarValue(fieldValue);
+                LOG.debug("  {} -> scalar, value={}", fieldName, scalar);
+                builder.addAttribute(fieldName, scalar);
             }
         }
 
