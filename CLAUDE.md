@@ -131,7 +131,7 @@ org.forgerock.openicf.connectors.aic
 
 org.forgerock.openicf.connectors.aic.schema
 ├── UserSchemaHandler.java         # returns ObjectClassInfo for __ACCOUNT__
-├── (OrganizationSchemaHandler.java) # NOT YET CREATED — planned for GROUP
+├── (OrganizationSchemaHandler.java) # NOT YET CREATED — planned for ORGANIZATION
 └── RoleSchemaHandler.java         # returns ObjectClassInfo for ROLE
 
 org.forgerock.openicf.connectors.aic.handler
