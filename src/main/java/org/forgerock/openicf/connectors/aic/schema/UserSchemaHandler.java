@@ -31,6 +31,10 @@ public class UserSchemaHandler {
 
     public ObjectClassInfo getObjectClassInfo() {
         JsonNode schema = http.get("/openidm/schema/managed/" + realm + "_user", null);
+        return buildFromSchema(schema);
+    }
+
+    ObjectClassInfo buildFromSchema(JsonNode schema) {
         JsonNode properties = schema.get("properties");
         if (properties == null || !properties.isObject()) {
             throw new ConnectorException("Invalid schema response: missing 'properties' field");
