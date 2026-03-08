@@ -52,6 +52,7 @@ public class UserSchemaHandler {
             }
 
             String type = propDef.path("type").asText("string");
+            boolean isVirtual = propDef.path("isVirtual").asBoolean(false);
 
             if ("array".equals(type)
                     && "relationship".equals(propDef.path("items").path("type").asText(""))) {
@@ -63,16 +64,28 @@ public class UserSchemaHandler {
                 if (collectionPath == null || collectionPath.isBlank()) {
                     continue;
                 }
-                relMap.put(propName, collectionPath);
 
-                AttributeInfoBuilder rab = new AttributeInfoBuilder();
-                rab.setName(propName);
-                rab.setType(String.class);
-                rab.setMultiValued(true);
-                rab.setReturnedByDefault(false);
-                rab.setCreateable(false);
-                rab.setUpdateable(true);
-                ocib.addAttributeInfo(rab.build());
+                if (isVirtual) {
+                    roAttrs.add(propName);
+                    AttributeInfoBuilder rab = new AttributeInfoBuilder();
+                    rab.setName(propName);
+                    rab.setType(String.class);
+                    rab.setMultiValued(true);
+                    rab.setReturnedByDefault(false);
+                    rab.setCreateable(false);
+                    rab.setUpdateable(false);
+                    ocib.addAttributeInfo(rab.build());
+                } else {
+                    relMap.put(propName, collectionPath);
+                    AttributeInfoBuilder rab = new AttributeInfoBuilder();
+                    rab.setName(propName);
+                    rab.setType(String.class);
+                    rab.setMultiValued(true);
+                    rab.setReturnedByDefault(false);
+                    rab.setCreateable(false);
+                    rab.setUpdateable(true);
+                    ocib.addAttributeInfo(rab.build());
+                }
                 continue;
             }
 
@@ -85,7 +98,6 @@ public class UserSchemaHandler {
                 continue;
             }
 
-            boolean isVirtual = propDef.path("isVirtual").asBoolean(false);
             boolean userEditable = propDef.path("userEditable").asBoolean(true);
             boolean returnByDefault = propDef.path("returnByDefault").asBoolean(true);
             if (isVirtual || !userEditable) {
