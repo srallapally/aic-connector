@@ -175,9 +175,6 @@ public class UserHandler extends AbstractHandler {
 
         String userId = base.getUid().getUidValue();
         for (String relAttr : requestedRelationships) {
-            if (base.getAttributeByName(relAttr) != null) {
-                continue;
-            }
             List<String> refIds = fetchRelationshipIds(userId, relAttr);
             builder.addAttribute(relAttr, refIds);
         }
