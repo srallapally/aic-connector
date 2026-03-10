@@ -10,7 +10,6 @@ import org.forgerock.openicf.connectors.aic.util.CrestHttpClient;
 import org.identityconnectors.framework.common.objects.Attribute;
 import org.identityconnectors.framework.common.objects.AttributeUtil;
 import org.identityconnectors.framework.common.objects.ConnectorObject;
-import org.identityconnectors.framework.common.objects.ConnectorObjectBuilder;
 import org.identityconnectors.framework.common.objects.Name;
 import org.identityconnectors.framework.common.objects.ObjectClass;
 import org.identityconnectors.framework.common.objects.OperationOptions;
@@ -21,8 +20,6 @@ import org.identityconnectors.framework.spi.SearchResultsHandler;
 import org.identityconnectors.framework.common.objects.filter.EqualsFilter;
 import org.identityconnectors.framework.common.objects.filter.Filter;
 
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -34,15 +31,10 @@ public class RoleHandler extends AbstractHandler {
     private static final CrestFilterTranslator FILTER_TRANSLATOR = new CrestFilterTranslator();
     private static final String NAME_ATTRIBUTE = "name";
 
-    private final Map<String, String> relationshipCollections;
-    private final Set<String> readOnlyRelationships;
-
     public RoleHandler(CrestHttpClient http, String resourceUrl, PingAICConfiguration cfg,
                        Map<String, String> relationshipCollections,
                        Set<String> readOnlyRelationships) {
-        super(http, resourceUrl, cfg);
-        this.relationshipCollections = relationshipCollections;
-        this.readOnlyRelationships = readOnlyRelationships;
+        super(http, resourceUrl, cfg, relationshipCollections, readOnlyRelationships);
     }
 
     @Override
@@ -145,162 +137,4 @@ public class RoleHandler extends AbstractHandler {
         }
     }
 
-    // ── Relationship read helpers ─────────────────────────────────────────────
-
-    private ConnectorObject enrichWithRelationships(ConnectorObject base, OperationOptions options) {
-        String[] attrsToGet = options.getAttributesToGet();
-
-        Set<String> requestedRelationships = new HashSet<>();
-        if (attrsToGet == null) {
-            requestedRelationships.addAll(relationshipCollections.keySet());
-        } else {
-            for (String attr : attrsToGet) {
-                if (relationshipCollections.containsKey(attr)) {
-                    requestedRelationships.add(attr);
-                }
-            }
-        }
-        if (requestedRelationships.isEmpty()) {
-            return base;
-        }
-
-        ConnectorObjectBuilder builder = new ConnectorObjectBuilder();
-        builder.setObjectClass(base.getObjectClass());
-        builder.setUid(base.getUid());
-        builder.setName(base.getName());
-        for (Attribute attr : base.getAttributes()) {
-            if (!attr.is(Uid.NAME) && !attr.is(Name.NAME)) {
-                builder.addAttribute(attr);
-            }
-        }
-
-        String roleId = base.getUid().getUidValue();
-        for (String relAttr : requestedRelationships) {
-            List<String> refIds = fetchRelationshipIds(roleId, relAttr);
-            builder.addAttribute(relAttr, refIds);
-        }
-
-        return builder.build();
-    }
-
-    private List<String> fetchRelationshipIds(String roleId, String fieldName) {
-        Map<String, String> params = new LinkedHashMap<>();
-        params.put("_queryFilter", "true");
-        params.put("_fields", "_ref,_refResourceCollection,_refResourceId,_refProperties");
-        JsonNode response = http.get(resourceUrl + "/" + roleId + "/" + fieldName, params);
-
-        List<String> ids = new ArrayList<>();
-        JsonNode results = response.get("result");
-        if (results != null) {
-            for (JsonNode node : results) {
-                JsonNode refId = node.get("_refResourceId");
-                if (refId != null && !refId.isNull()) {
-                    ids.add(refId.asText());
-                }
-            }
-        }
-        return ids;
-    }
-
-    // ── Relationship write helpers ────────────────────────────────────────────
-
-    private void syncRelationship(String roleId, String fieldName, List<Object> desiredValues) {
-        Set<String> desired = new LinkedHashSet<>();
-        if (desiredValues != null) {
-            for (Object v : desiredValues) {
-                if (v != null) {
-                    desired.add(v.toString());
-                }
-            }
-        }
-
-        Map<String, RelationshipEntry> current = fetchCurrentRelationships(roleId, fieldName);
-
-        Set<String> toAdd = new LinkedHashSet<>(desired);
-        toAdd.removeAll(current.keySet());
-        Set<String> toRemove = new LinkedHashSet<>(current.keySet());
-        toRemove.removeAll(desired);
-
-        for (String id : toAdd) {
-            applyRelationshipAdd(roleId, fieldName, id);
-        }
-        for (String id : toRemove) {
-            applyRelationshipRemove(roleId, fieldName, current.get(id));
-        }
-    }
-
-    private Map<String, RelationshipEntry> fetchCurrentRelationships(String roleId, String fieldName) {
-        Map<String, String> params = new LinkedHashMap<>();
-        params.put("_queryFilter", "true");
-        params.put("_fields", "_ref,_refResourceCollection,_refResourceId,_refProperties");
-        JsonNode response = http.get(resourceUrl + "/" + roleId + "/" + fieldName, params);
-
-        Map<String, RelationshipEntry> map = new LinkedHashMap<>();
-        JsonNode results = response.get("result");
-        if (results != null) {
-            for (JsonNode node : results) {
-                String refId = node.path("_refResourceId").asText(null);
-                if (refId != null) {
-                    RelationshipEntry entry = new RelationshipEntry(
-                            node.path("_ref").asText(),
-                            node.path("_refResourceCollection").asText(),
-                            refId,
-                            node.path("_refProperties").path("_id").asText(),
-                            node.path("_refProperties").path("_rev").asText()
-                    );
-                    map.put(refId, entry);
-                }
-            }
-        }
-        return map;
-    }
-
-    private void applyRelationshipAdd(String roleId, String fieldName, String targetId) {
-        String collectionPath = relationshipCollections.get(fieldName);
-        ArrayNode ops = MAPPER.createArrayNode();
-        ObjectNode op = ops.addObject();
-        op.put("operation", "add");
-        op.put("field", "/" + fieldName + "/-");
-        ObjectNode value = MAPPER.createObjectNode();
-        value.put("_ref", collectionPath + "/" + targetId);
-        op.set("value", value);
-        http.patch(resourceUrl + "/" + roleId, ops);
-    }
-
-    private void applyRelationshipRemove(String roleId, String fieldName,
-                                         RelationshipEntry entry) {
-        ArrayNode ops = MAPPER.createArrayNode();
-        ObjectNode op = ops.addObject();
-        op.put("operation", "remove");
-        op.put("field", "/" + fieldName);
-        ObjectNode value = MAPPER.createObjectNode();
-        value.put("_ref", entry.ref);
-        value.put("_refResourceCollection", entry.refResourceCollection);
-        value.put("_refResourceId", entry.refResourceId);
-        ObjectNode refProps = MAPPER.createObjectNode();
-        refProps.put("_id", entry.refPropertiesId);
-        refProps.put("_rev", entry.refPropertiesRev);
-        value.set("_refProperties", refProps);
-        op.set("value", value);
-        http.patch(resourceUrl + "/" + roleId, ops);
-    }
-
-    // ── RelationshipEntry ─────────────────────────────────────────────────────
-
-    private static final class RelationshipEntry {
-        final String ref;
-        final String refResourceCollection;
-        final String refResourceId;
-        final String refPropertiesId;
-        final String refPropertiesRev;
-
-        RelationshipEntry(String ref, String refResourceCollection, String refResourceId,
-                          String refPropertiesId, String refPropertiesRev) {
-            this.ref = ref;
-            this.refResourceCollection = refResourceCollection;
-            this.refResourceId = refResourceId;
-            this.refPropertiesId = refPropertiesId;
-            this.refPropertiesRev = refPropertiesRev;
-        }
-    }
 }
