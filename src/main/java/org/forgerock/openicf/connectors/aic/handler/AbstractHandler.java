@@ -261,6 +261,22 @@ public abstract class AbstractHandler implements CrudqHandler {
         }
     }
 
+    protected void syncSingularRelationship(String objectId, String fieldName, String targetId) {
+        ArrayNode ops = MAPPER.createArrayNode();
+        ObjectNode op = ops.addObject();
+        op.put("operation", "replace");
+        op.put("field", "/" + fieldName);
+        if (targetId == null || targetId.isBlank()) {
+            op.set("value", MAPPER.nullNode());
+        } else {
+            String collectionPath = relationshipCollections.get(fieldName);
+            ObjectNode value = MAPPER.createObjectNode();
+            value.put("_ref", collectionPath + "/" + targetId);
+            op.set("value", value);
+        }
+        http.patch(resourceUrl + "/" + objectId, ops);
+    }
+
     private Map<String, RelationshipEntry> fetchCurrentRelationships(String userId, String fieldName) {
         Map<String, String> params = new LinkedHashMap<>();
         params.put("_queryFilter", "true");
