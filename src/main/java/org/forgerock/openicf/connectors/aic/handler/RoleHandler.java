@@ -149,14 +149,15 @@ public class RoleHandler extends AbstractHandler {
 
     private ConnectorObject enrichWithRelationships(ConnectorObject base, OperationOptions options) {
         String[] attrsToGet = options.getAttributesToGet();
-        if (attrsToGet == null) {
-            return base;
-        }
 
         Set<String> requestedRelationships = new HashSet<>();
-        for (String attr : attrsToGet) {
-            if (relationshipCollections.containsKey(attr)) {
-                requestedRelationships.add(attr);
+        if (attrsToGet == null) {
+            requestedRelationships.addAll(relationshipCollections.keySet());
+        } else {
+            for (String attr : attrsToGet) {
+                if (relationshipCollections.containsKey(attr)) {
+                    requestedRelationships.add(attr);
+                }
             }
         }
         if (requestedRelationships.isEmpty()) {
@@ -175,9 +176,6 @@ public class RoleHandler extends AbstractHandler {
 
         String roleId = base.getUid().getUidValue();
         for (String relAttr : requestedRelationships) {
-            if (base.getAttributeByName(relAttr) != null) {
-                continue;
-            }
             List<String> refIds = fetchRelationshipIds(roleId, relAttr);
             builder.addAttribute(relAttr, refIds);
         }
