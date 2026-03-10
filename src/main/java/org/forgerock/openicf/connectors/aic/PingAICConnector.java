@@ -2,10 +2,10 @@
 package org.forgerock.openicf.connectors.aic;
 
 import org.forgerock.openicf.connectors.aic.handler.CrudqHandler;
-// import org.forgerock.openicf.connectors.aic.handler.OrganizationHandler;
+import org.forgerock.openicf.connectors.aic.handler.OrgHandler;
 import org.forgerock.openicf.connectors.aic.handler.RoleHandler;
 import org.forgerock.openicf.connectors.aic.handler.UserHandler;
-// import org.forgerock.openicf.connectors.aic.schema.OrganizationSchemaHandler;
+import org.forgerock.openicf.connectors.aic.schema.OrgSchemaHandler;
 import org.forgerock.openicf.connectors.aic.schema.RoleSchemaHandler;
 import org.forgerock.openicf.connectors.aic.schema.UserSchemaHandler;
 import org.forgerock.openicf.connectors.aic.util.CrestHttpClient;
@@ -49,14 +49,15 @@ public class PingAICConnector implements
     private CrestHttpClient http;
 
     private UserHandler userHandler;
-//  private OrganizationHandler orgHandler;
+    private OrgHandler orgHandler;
     private RoleHandler roleHandler;
 
     private UserSchemaHandler userSchemaHandler;
-//  private OrganizationSchemaHandler orgSchemaHandler;
+    private OrgSchemaHandler orgSchemaHandler;
     private RoleSchemaHandler roleSchemaHandler;
 
     private ObjectClassInfo userObjectClassInfo;
+    private ObjectClassInfo orgObjectClassInfo;
     private ObjectClassInfo roleObjectClassInfo;
 
     @Override
@@ -70,8 +71,6 @@ public class PingAICConnector implements
         this.http = new CrestHttpClient(cfg);
 
         String userUrl = "/openidm/managed/" + cfg.getRealm() + "_user";
-//      String orgUrl  = "/openidm/managed/" + cfg.getRealm() + "_organization";
-//      String roleUrl = "/openidm/managed/" + cfg.getRealm() + "_role";
 
         this.userSchemaHandler = new UserSchemaHandler(http, cfg.getRealm());
         this.userObjectClassInfo = userSchemaHandler.getObjectClassInfo();
@@ -79,7 +78,14 @@ public class PingAICConnector implements
 
         this.userHandler = new UserHandler(http, userUrl, cfg, relCollections,
                 userSchemaHandler.getReadOnlyAttributes());
-//      this.orgHandler  = new OrganizationHandler(http, orgUrl, cfg);
+
+        String orgUrl = "/openidm/managed/" + cfg.getRealm() + "_organization";
+        this.orgSchemaHandler = new OrgSchemaHandler(http, cfg.getRealm());
+        this.orgObjectClassInfo = orgSchemaHandler.getObjectClassInfo();
+        this.orgHandler = new OrgHandler(http, orgUrl, cfg,
+                orgSchemaHandler.getRelationshipCollections(),
+                orgSchemaHandler.getSingularRelationships(),
+                orgSchemaHandler.getReadOnlyRelationships());
 
         String roleUrl = "/openidm/managed/" + cfg.getRealm() + "_role";
         this.roleSchemaHandler = new RoleSchemaHandler(http, cfg.getRealm());
@@ -87,8 +93,6 @@ public class PingAICConnector implements
         this.roleHandler = new RoleHandler(http, roleUrl, cfg,
                 roleSchemaHandler.getRelationshipCollections(),
                 roleSchemaHandler.getReadOnlyRelationships());
-
-//      this.orgSchemaHandler  = new OrganizationSchemaHandler(http);
     }
 
     @Override
@@ -106,8 +110,8 @@ public class PingAICConnector implements
     public Schema schema() {
         SchemaBuilder builder = new SchemaBuilder(PingAICConnector.class);
         builder.defineObjectClass(userObjectClassInfo);
+        builder.defineObjectClass(orgObjectClassInfo);
         builder.defineObjectClass(roleObjectClassInfo);
-//      builder.defineObjectClass(orgSchemaHandler.getObjectClassInfo());
         return builder.build();
     }
 
@@ -169,9 +173,9 @@ public class PingAICConnector implements
         if (objectClass.is(ObjectClass.ACCOUNT_NAME)) {
             return userHandler;
         }
-//      if (objectClass.is("GROUP")) {
-//          return orgHandler;
-//      }
+        if (objectClass.is("organization")) {
+            return orgHandler;
+        }
         if (objectClass.is("ROLE")) {
             return roleHandler;
         }
