@@ -36,7 +36,8 @@ public class CrestHttpClient implements Closeable {
 
     private final CloseableHttpClient httpClient;
     private final String baseUrl;
-    private final String token;
+    private final PingAICConfiguration cfg;
+    private volatile String token;
 
     public CrestHttpClient(PingAICConfiguration cfg) {
         this.baseUrl = cfg.getBaseUrl();
@@ -50,10 +51,11 @@ public class CrestHttpClient implements Closeable {
                 .setDefaultRequestConfig(requestConfig)
                 .build();
 
-        this.token = fetchToken(cfg);
+        this.cfg = cfg;
+        fetchToken();
     }
 
-    private String fetchToken(PingAICConfiguration cfg) {
+    private void fetchToken() {
         final String[] holder = new String[1];
         cfg.getClientSecret().access(chars -> holder[0] = new String(chars));
 
@@ -72,7 +74,7 @@ public class CrestHttpClient implements Closeable {
             if (status != 200) {
                 throw new ConnectorException("Token request failed: " + status + " " + body);
             }
-            return MAPPER.readTree(body).get("access_token").asText();
+            this.token = MAPPER.readTree(body).get("access_token").asText();
         } catch (IOException e) {
             throw new ConnectorException("Token request failed: " + e.getMessage(), e);
         }
@@ -112,21 +114,36 @@ public class CrestHttpClient implements Closeable {
         request.setHeader("Authorization", "Bearer " + token);
         try (CloseableHttpResponse response = httpClient.execute(request)) {
             int status = response.getStatusLine().getStatusCode();
-            if (status == 401) {
-                throw new ConnectorException("Unauthorized (401) — token invalid or expired");
+            if (status != 401) {
+                return handleResponse(response, status, expectBody);
             }
-            if (status < 200 || status >= 300) {
-                String body = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
-                throw new ConnectorException("Request failed: " + status + " " + body);
-            }
-            if (!expectBody) {
-                return null;
-            }
-            String body = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
-            return MAPPER.readTree(body);
         } catch (IOException e) {
             throw new ConnectorException("HTTP request failed: " + e.getMessage(), e);
         }
+
+        fetchToken();
+        request.setHeader("Authorization", "Bearer " + token);
+        try (CloseableHttpResponse response = httpClient.execute(request)) {
+            int status = response.getStatusLine().getStatusCode();
+            return handleResponse(response, status, expectBody);
+        } catch (IOException e) {
+            throw new ConnectorException("HTTP request failed: " + e.getMessage(), e);
+        }
+    }
+
+    private JsonNode handleResponse(CloseableHttpResponse response, int status, boolean expectBody) throws IOException {
+        if (status == 401) {
+            throw new ConnectorException("Unauthorized (401) — token invalid or expired");
+        }
+        if (status < 200 || status >= 300) {
+            String body = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
+            throw new ConnectorException("Request failed: " + status + " " + body);
+        }
+        if (!expectBody) {
+            return null;
+        }
+        String body = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
+        return MAPPER.readTree(body);
     }
 
     @Override
