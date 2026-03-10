@@ -39,9 +39,29 @@ public class RoleHandler extends AbstractHandler {
 
     @Override
     public Uid create(ObjectClass objectClass, Set<Attribute> attributes, OperationOptions options) {
-        ObjectNode body = attributesToJson(attributes, NAME_ATTRIBUTE);
+        Set<Attribute> scalarAttrs = new LinkedHashSet<>();
+        Set<Attribute> relationshipAttrs = new LinkedHashSet<>();
+        for (Attribute attr : attributes) {
+            String name = attr.getName();
+            if (readOnlyRelationships.contains(name)) {
+                continue;
+            }
+            if (relationshipCollections.containsKey(name)) {
+                relationshipAttrs.add(attr);
+            } else {
+                scalarAttrs.add(attr);
+            }
+        }
+
+        ObjectNode body = attributesToJson(scalarAttrs, NAME_ATTRIBUTE);
         JsonNode response = http.post(resourceUrl + "?_action=create", body);
-        return new Uid(response.get("_id").asText());
+        String objectId = response.get("_id").asText();
+
+        for (Attribute attr : relationshipAttrs) {
+            syncRelationship(objectId, attr.getName(), attr.getValue());
+        }
+
+        return new Uid(objectId);
     }
 
     @Override
