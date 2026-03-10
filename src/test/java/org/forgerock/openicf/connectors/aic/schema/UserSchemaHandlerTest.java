@@ -91,6 +91,66 @@ public class UserSchemaHandlerTest extends ConnectorHarnessTest {
         assertTrue(accountAttrs.get("assignments").isReturnedByDefault());
     }
 
+    @Test
+    void ownerOfOrg_isPresent() {
+        assertTrue(accountAttrs.containsKey("ownerOfOrg"), "ownerOfOrg not found in schema");
+    }
+
+    @Test
+    void ownerOfOrg_isMultiValued() {
+        assertTrue(accountAttrs.get("ownerOfOrg").isMultiValued());
+    }
+
+    @Test
+    void ownerOfOrg_isUpdateable() {
+        assertTrue(accountAttrs.get("ownerOfOrg").isUpdateable());
+    }
+
+    @Test
+    void ownerOfOrg_isReturnedByDefault() {
+        assertTrue(accountAttrs.get("ownerOfOrg").isReturnedByDefault());
+    }
+
+    @Test
+    void adminOfOrg_isPresent() {
+        assertTrue(accountAttrs.containsKey("adminOfOrg"), "adminOfOrg not found in schema");
+    }
+
+    @Test
+    void adminOfOrg_isMultiValued() {
+        assertTrue(accountAttrs.get("adminOfOrg").isMultiValued());
+    }
+
+    @Test
+    void adminOfOrg_isUpdateable() {
+        assertTrue(accountAttrs.get("adminOfOrg").isUpdateable());
+    }
+
+    @Test
+    void adminOfOrg_isReturnedByDefault() {
+        assertTrue(accountAttrs.get("adminOfOrg").isReturnedByDefault());
+    }
+
+    @Test
+    void memberOfOrg_isPresent() {
+        assertTrue(accountAttrs.containsKey("memberOfOrg"), "memberOfOrg not found in schema");
+    }
+
+    @Test
+    void memberOfOrg_isMultiValued() {
+        assertTrue(accountAttrs.get("memberOfOrg").isMultiValued());
+    }
+
+    @Test
+    void memberOfOrg_isUpdateable() {
+        assertTrue(accountAttrs.get("memberOfOrg").isUpdateable());
+    }
+
+    @Test
+    void memberOfOrg_isReturnedByDefault() {
+        assertTrue(accountAttrs.get("memberOfOrg").isReturnedByDefault());
+    }
+
     // ── Read-only effective attributes ────────────────────────────────────────
 
     @Test
