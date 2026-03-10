@@ -17,16 +17,16 @@ OpenICF Java connector for PingOne Advanced Identity Cloud (AIC). Provisions and
 |---|---|---|
 | `__ACCOUNT__` | `managed/{realm}_user` | Complete |
 | `ROLE` | `managed/{realm}_role` | Complete |
-| `GROUP` | `managed/{realm}_organization` | Planned |
+| `organization` | `managed/{realm}_organization` | Complete |
 
 ## Supported Operations
 
-| Operation | `__ACCOUNT__` | `ROLE` | `GROUP` |
+| Operation | `__ACCOUNT__` | `ROLE` | `organization` |
 |---|---|---|---|
-| Create | Yes | Yes | Planned |
-| Update | Yes | Yes | Planned |
-| Delete | Yes | Yes | Planned |
-| Search | Yes | Yes | Planned |
+| Create | Yes | Yes | Yes |
+| Update | Yes | Yes | Yes |
+| Delete | Yes | Yes | Yes |
+| Search | Yes | Yes | Yes |
 | LiveSync | No | No | No |
 
 - **Update** uses CREST PATCH (`[{"operation":"replace","field":"/attr","value":...}]`), never PUT.
@@ -51,6 +51,11 @@ Grant/revoke uses replace semantics: IDM passes the full desired list; the conne
 | `__ACCOUNT__` | `ownerOfOrg` | `managed/{realm}_organization` | Yes |
 | `ROLE` | `members` | `managed/{realm}_user` | Yes |
 | `ROLE` | `assignments` | `managed/{realm}_assignment` | No (read-only) |
+| `organization` | `admins` | `managed/{realm}_user` | Yes |
+| `organization` | `members` | `managed/{realm}_user` | Yes |
+| `organization` | `owners` | `managed/{realm}_user` | Yes |
+| `organization` | `children` | `managed/{realm}_organization` | Yes |
+| `organization` | `parent` | `managed/{realm}_organization` | Yes (singular) |
 
 Additional relationships defined in the AIC schema are discovered automatically.
 
@@ -91,7 +96,7 @@ The connector fetches a token on initialisation and reuses it for the lifetime o
 | `timestampAttribute` | String | — | No | CREST attribute for delta detection (e.g. `frIndexedString20`) |
 | `timestampValue` | String | — | No | ISO-8601 timestamp; combined with `timestampAttribute` as a `ge` filter |
 | `userBaseFilter` | String | — | No | Raw `_queryFilter` applied to all `__ACCOUNT__` searches |
-| `orgBaseFilter` | String | — | No | Raw `_queryFilter` applied to all `GROUP` searches |
+| `orgBaseFilter` | String | — | No | Raw `_queryFilter` applied to all `organization` searches |
 | `roleBaseFilter` | String | — | No | Raw `_queryFilter` applied to all `ROLE` searches |
 
 ## Query Filter Support
@@ -219,6 +224,7 @@ Integration tests use the OpenICF connector harness to exercise the connector ag
 | `UserSchemaHandlerTest` | `aic.schema` | Integration | `__ACCOUNT__` schema attributes via `facade.schema()` |
 | `SearchTest` | `aic.search` | Integration | searchAll, search by UID, relationship attributes, effectiveAssignments |
 | `CrudTest` | `aic.crud` | Integration | Create/update/delete lifecycle for `__ACCOUNT__` |
+| `OrgCrudTest` | `aic.crud` | Integration | Create/update/delete lifecycle + relationship grant/revoke for `organization` |
 
 ## Bundle Verification
 
