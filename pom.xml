@@ -19,7 +19,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <!-- Framework -->
-        <openicf.framework.version>1.5.20.32</openicf.framework.version>
+        <openicf.framework.version>1.5.20.33</openicf.framework.version>
 
         <!-- HTTP + JSON -->
         <httpclient.version>4.5.14</httpclient.version>
@@ -142,6 +142,11 @@
                         <Bundle-SymbolicName>org.forgerock.openicf.connectors.ping-aic-connector</Bundle-SymbolicName>
                         <Bundle-Version>${project.version}</Bundle-Version>
                         <ConnectorBundle-FrameworkVersion>1.5</ConnectorBundle-FrameworkVersion>
+                        <Implementation-Build>0</Implementation-Build>
+                        <Implementation-Title>PingOne Advanced Identity Cloud Connector</Implementation-Title>
+                        <Implementation-Vendor>Ping Identity Corporation</Implementation-Vendor>
+                        <Implementation-Vendor-Id>org.forgerock.openicf.connectors</Implementation-Vendor-Id>
+                        <Implementation-Version>${project.version}</Implementation-Version>
                         <ConnectorBundle-Name>org.forgerock.openicf.connectors.ping-aic-connector</ConnectorBundle-Name>
                         <ConnectorBundle-Version>${project.version}</ConnectorBundle-Version>
                         <!-- Embed compile-scope deps; framework and slf4j are provided by runtime -->

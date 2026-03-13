@@ -38,7 +38,7 @@ import java.util.Map;
 import java.util.Set;
 
 @ConnectorClass(
-        displayNameKey = "connector.display",
+        displayNameKey = "pingaic.connector.display",
         configurationClass = PingAICConfiguration.class)
 public class PingAICConnector implements
         org.identityconnectors.framework.spi.Connector,
